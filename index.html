@@ -45,7 +45,7 @@ body { display: flex; flex-direction: column; max-width: 430px; margin: 0 auto; 
 .add-btn { background: var(--blue); color: #fff; border: none; border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; font-family: inherit; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 4px; }
 
 /* Nav */
-.nav { background: var(--surface); border-top: 0.5px solid var(--border); padding: 8px 4px; display: flex; justify-content: space-around; position: sticky; bottom: 0; z-index: 100; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+.nav { background: var(--surface); border-top: 0.5px solid var(--border); padding: 8px 4px; display: flex; justify-content: space-around; position: sticky; bottom: 0; z-index: 100; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
 .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; cursor: pointer; padding: 6px 10px; border-radius: var(--radius-sm); color: var(--text-3); font-family: inherit; min-width: 52px; }
 .nav-btn.active { color: var(--blue); }
 .nav-icon { width: 22px; height: 22px; display: block; }
@@ -484,13 +484,24 @@ function renderCal() {
     if (eDates.has(ds)) cls += ' exam-day';
     else if (sDates.has(ds)) cls += ' has-study';
     if (isT) cls += ' today';
-    html += `<div class="${cls}" onclick="openDay('${ds}')">${d}</div>`;
+    html += `<div class="${cls}" ontouchstart="touchStart(event)" ontouchend="touchEnd(event,'${ds}')">${d}</div>`;
   }
   document.getElementById('cal-grid').innerHTML = html;
 }
 
 function prevM() { S.calM--; if (S.calM < 0) { S.calM = 11; S.calY--; } renderCal(); }
 function nextM() { S.calM++; if (S.calM > 11) { S.calM = 0; S.calY++; } renderCal(); }
+
+let touchStartX = 0, touchStartY = 0;
+function touchStart(e) {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}
+function touchEnd(e, date) {
+  const dx = Math.abs(e.changedTouches[0].clientX - touchStartX);
+  const dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
+  if (dx < 8 && dy < 8) openDay(date);
+}
 
 function openDay(date) {
   S.selDate = date;
