@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="勉強記録">
+<meta name="theme-color" content="#ffffff">
+<title>勉強記録</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #f8f7f4;
+  --surface: #ffffff;
+  --border: rgba(0,0,0,0.08);
+  --border-strong: rgba(0,0,0,0.15);
+  --text: #1a1a1a;
+  --text-2: #666;
+  --text-3: #999;
+  --blue: #2563eb;
+  --blue-bg: #eff6ff;
+  --blue-text: #1d4ed8;
+  --green: #16a34a;
+  --green-bg: #f0fdf4;
+  --green-text: #15803d;
+  --amber: #d97706;
+  --amber-bg: #fffbeb;
+  --amber-text: #b45309;
+  --red: #dc2626;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); font-family: 'Noto Sans JP', sans-serif; color: var(--text); }
+body { display: flex; flex-direction: column; max-width: 430px; margin: 0 auto; }
+
+/* Header */
+.header { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 16px 20px 12px; position: sticky; top: 0; z-index: 100; }
+.header-top { display: flex; justify-content: space-between; align-items: center; }
+.app-title { font-size: 18px; font-weight: 700; color: var(--text); }
+.add-btn { background: var(--blue); color: #fff; border: none; border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; font-family: inherit; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+/* Nav */
+.nav { background: var(--surface); border-top: 0.5px solid var(--border); padding: 8px 4px; display: flex; justify-content: space-around; position: sticky; bottom: 0; z-index: 100; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+.nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; cursor: pointer; padding: 6px 10px; border-radius: var(--radius-sm); color: var(--text-3); font-family: inherit; min-width: 52px; }
+.nav-btn.active { color: var(--blue); }
+.nav-icon { width: 22px; height: 22px; display: block; }
+.nav-label { font-size: 10px; font-weight: 500; }
+
+/* Content */
+.content { flex: 1; overflow-y: auto; padding: 16px; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* Cards */
+.card { background: var(--surface); border-radius: var(--radius); border: 0.5px solid var(--border); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow); }
+.card-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 12px; letter-spacing: 0.02em; }
+
+/* Metrics */
+.metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.metric { background: var(--surface); border-radius: var(--radius); border: 0.5px solid var(--border); padding: 14px; text-align: center; box-shadow: var(--shadow); }
+.metric-val { font-size: 24px; font-weight: 700; color: var(--text); line-height: 1.1; }
+.metric-label { font-size: 11px; color: var(--text-2); margin-top: 4px; }
+
+/* Progress */
+.progress-wrap { margin-bottom: 4px; }
+.progress-bar { background: var(--bg); border-radius: 4px; height: 6px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 4px; background: var(--blue); transition: width 0.4s; }
+
+/* Badge */
+.badge { display: inline-block; font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 500; }
+.badge-blue { background: var(--blue-bg); color: var(--blue-text); }
+.badge-green { background: var(--green-bg); color: var(--green-text); }
+.badge-amber { background: var(--amber-bg); color: var(--amber-text); }
+
+/* Log item */
+.log-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+.log-item:last-child { border-bottom: none; }
+.log-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.log-sub { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+.log-min { font-size: 15px; font-weight: 700; color: var(--blue); }
+
+/* Calendar */
+.cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.cal-nav { background: none; border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 8px 14px; font-size: 14px; cursor: pointer; color: var(--text); }
+.cal-title { font-size: 15px; font-weight: 700; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-day-name { font-size: 11px; color: var(--text-3); text-align: center; padding: 4px 0; font-weight: 500; }
+.cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: var(--radius-sm); cursor: pointer; color: var(--text-2); border: 0.5px solid transparent; font-weight: 400; }
+.cal-day:active { opacity: 0.7; }
+.cal-day.has-study { background: var(--blue-bg); color: var(--blue-text); font-weight: 700; }
+.cal-day.today { border: 2px solid var(--blue); font-weight: 700; color: var(--text); }
+.cal-day.exam-day { background: var(--amber-bg); color: var(--amber-text); font-weight: 700; }
+.cal-day.empty { cursor: default; }
+
+/* Timer */
+.timer-modes { display: flex; gap: 8px; margin-bottom: 20px; }
+.timer-mode-btn { flex: 1; padding: 10px; border: 0.5px solid var(--border); border-radius: var(--radius-sm); background: none; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-2); }
+.timer-mode-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+.timer-circle-wrap { display: flex; justify-content: center; margin-bottom: 24px; }
+.timer-circle { width: 160px; height: 160px; border-radius: 50%; border: 4px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.timer-num { font-size: 36px; font-weight: 700; color: var(--text); letter-spacing: -1px; }
+.timer-sub { font-size: 12px; color: var(--text-2); margin-top: 4px; }
+.timer-actions { display: flex; gap: 10px; justify-content: center; }
+.timer-btn { padding: 12px 28px; border-radius: var(--radius-sm); border: 0.5px solid var(--border); background: var(--surface); font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; color: var(--text); }
+.timer-btn.primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+.pomo-count { text-align: center; margin: 16px 0; font-size: 13px; color: var(--text-2); }
+
+/* Graph toggle */
+.graph-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+.g-btn { padding: 7px 16px; border: 0.5px solid var(--border); border-radius: var(--radius-sm); background: none; font-family: inherit; font-size: 13px; cursor: pointer; color: var(--text-2); }
+.g-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 500; }
+
+/* Trophy */
+.trophy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.trophy-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px; text-align: center; box-shadow: var(--shadow); }
+.trophy-icon { font-size: 36px; margin-bottom: 8px; }
+.trophy-name { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 4px; line-height: 1.4; }
+.trophy-memo { font-size: 11px; color: var(--text-2); }
+
+/* Shikaku cards */
+.shikaku-card { background: var(--surface); border-radius: var(--radius); border: 0.5px solid var(--border); padding: 16px; margin-bottom: 10px; box-shadow: var(--shadow); }
+.shikaku-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.shikaku-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.shikaku-date { font-size: 12px; color: var(--text-2); }
+.shikaku-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); margin-top: 6px; }
+.memo-box { background: var(--bg); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 12px; color: var(--text-2); margin-top: 10px; line-height: 1.5; }
+.del-btn { background: none; border: none; color: var(--text-3); font-size: 12px; cursor: pointer; margin-top: 10px; font-family: inherit; }
+
+/* Modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border-radius: var(--radius); padding: 24px; width: 100%; max-width: 400px; }
+.modal-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; }
+.form-row { margin-bottom: 12px; }
+.form-label { font-size: 12px; color: var(--text-2); margin-bottom: 4px; font-weight: 500; }
+.form-input { width: 100%; padding: 11px 12px; border: 0.5px solid var(--border-strong); border-radius: var(--radius-sm); font-size: 14px; font-family: inherit; background: var(--surface); color: var(--text); -webkit-appearance: none; }
+.form-input:focus { outline: none; border-color: var(--blue); }
+.modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+.btn { flex: 1; padding: 13px; border-radius: var(--radius-sm); border: 0.5px solid var(--border); background: var(--surface); font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; color: var(--text); }
+.btn.primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+/* Legend */
+.legend { display: flex; gap: 12px; margin-bottom: 12px; font-size: 12px; color: var(--text-2); }
+.legend span { display: flex; align-items: center; gap: 4px; }
+.legend-dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+/* Countdown item */
+.countdown-item { margin-bottom: 16px; }
+.countdown-item:last-child { margin-bottom: 0; }
+.countdown-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.countdown-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.countdown-days { font-size: 20px; font-weight: 700; }
+.countdown-footer { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-3); margin-top: 4px; }
+
+.empty-msg { text-align: center; padding: 32px 0; color: var(--text-2); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="app-title">勉強記録</div>
+    <button class="add-btn" onclick="openAdd()">＋ 資格追加</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ホーム -->
+  <div id="sec-home" class="section">
+    <div class="metrics">
+      <div class="metric"><div class="metric-val" id="h-month">0h</div><div class="metric-label">今月の学習</div></div>
+      <div class="metric"><div class="metric-val" id="h-streak">0日</div><div class="metric-label">連続日数</div></div>
+      <div class="metric"><div class="metric-val" id="h-total">0h</div><div class="metric-label">累計学習</div></div>
+      <div class="metric"><div class="metric-val" id="h-count">0</div><div class="metric-label">記録数</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">試験までのカウントダウン</div>
+      <div id="h-countdown"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">直近の記録</div>
+      <div id="h-recent"></div>
+    </div>
+  </div>
+
+  <!-- 資格 -->
+  <div id="sec-shikaku" class="section">
+    <div id="shikaku-list"></div>
+    <button class="btn" style="width:100%;margin-top:4px;" onclick="openAdd()">＋ 新しい資格を追加</button>
+  </div>
+
+  <!-- カレンダー -->
+  <div id="sec-calendar" class="section active">
+    <div class="card-title" style="margin-bottom:12px;">学習カレンダー</div>
+    <div class="cal-header">
+      <button class="cal-nav" onclick="prevM()">＜</button>
+      <div class="cal-title" id="cal-title"></div>
+      <button class="cal-nav" onclick="nextM()">＞</button>
+    </div>
+    <div class="legend">
+      <span><span class="legend-dot" style="background:var(--blue-bg);border:1px solid #bfdbfe;"></span>勉強した日</span>
+      <span><span class="legend-dot" style="background:var(--amber-bg);border:1px solid #fde68a;"></span>試験日</span>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+
+  <!-- 記録 -->
+  <div id="sec-log" class="section">
+    <div class="card-title" style="margin-bottom:12px;">学習ログ</div>
+    <div id="log-list"></div>
+  </div>
+
+  <!-- グラフ -->
+  <div id="sec-graph" class="section">
+    <div class="graph-toggle">
+      <button class="g-btn active" id="g-week" onclick="setGraph('week')">週間</button>
+      <button class="g-btn" id="g-month" onclick="setGraph('month')">月間</button>
+    </div>
+    <div class="card">
+      <div style="position:relative;width:100%;height:200px;">
+        <canvas id="studyChart" role="img" aria-label="学習時間グラフ">学習時間の棒グラフ</canvas>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:12px;font-size:12px;color:var(--text-2);">
+        <span style="width:10px;height:10px;border-radius:2px;background:#2563eb;display:inline-block;"></span>学習時間（時間）
+      </div>
+    </div>
+  </div>
+
+  <!-- タイマー -->
+  <div id="sec-timer" class="section">
+    <div class="card">
+      <div class="timer-modes">
+        <button class="timer-mode-btn active" id="t-focus" onclick="setMode('focus')">集中 25分</button>
+        <button class="timer-mode-btn" id="t-break" onclick="setMode('break')">休憩 5分</button>
+      </div>
+      <div class="timer-circle-wrap">
+        <div class="timer-circle" id="timer-circle">
+          <div class="timer-num" id="timer-display">25:00</div>
+          <div class="timer-sub" id="timer-sub">集中モード</div>
+        </div>
+      </div>
+      <div class="pomo-count">今日のポモドーロ：<strong id="pomo-n">0</strong> 回（<span id="pomo-min">0</span>分）</div>
+      <div class="timer-actions">
+        <button class="timer-btn primary" id="t-start" onclick="startTimer()">▶ スタート</button>
+        <button class="timer-btn" onclick="resetTimer()">↺ リセット</button>
+      </div>
+      <div class="form-row" style="margin-top:16px;">
+        <div class="form-label">記録する資格</div>
+        <select class="form-input" id="timer-shikaku"></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- コレクション -->
+  <div id="sec-collection" class="section">
+    <div class="card-title" style="margin-bottom:12px;">取得済み資格</div>
+    <div class="trophy-grid" id="trophy-grid"></div>
+    <div id="no-trophy"></div>
+  </div>
+
+</div>
+
+<!-- Bottom Nav -->
+<nav class="nav">
+  <button class="nav-btn" onclick="sw('home')">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12L12 4l9 8"/><path d="M5 10v9a1 1 0 001 1h4v-4h4v4h4a1 1 0 001-1v-9"/></svg>
+    <span class="nav-label">ホーム</span>
+  </button>
+  <button class="nav-btn" onclick="sw('shikaku')">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
+    <span class="nav-label">資格</span>
+  </button>
+  <button class="nav-btn active" onclick="sw('calendar')">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    <span class="nav-label">カレンダー</span>
+  </button>
+  <button class="nav-btn" onclick="sw('log')">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    <span class="nav-label">記録</span>
+  </button>
+  <button class="nav-btn" onclick="sw('graph')">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>
+    <span class="nav-label">グラフ</span>
+  </button>
+  <button class="nav-btn" onclick="sw('timer')">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 3M9 2h6M12 2v3"/></svg>
+    <span class="nav-label">タイマー</span>
+  </button>
+  <button class="nav-btn" onclick="sw('collection')">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    <span class="nav-label">実績</span>
+  </button>
+</nav>
+
+<!-- 記録モーダル -->
+<div class="modal-overlay" id="day-modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-date-title">勉強を記録</div>
+    <div class="form-row">
+      <div class="form-label">資格</div>
+      <select class="form-input" id="modal-shikaku"></select>
+    </div>
+    <div class="form-row">
+      <div class="form-label">学習時間（分）</div>
+      <input type="number" class="form-input" id="modal-min" min="0" value="60">
+    </div>
+    <div class="form-row">
+      <div class="form-label">メモ（任意）</div>
+      <input type="text" class="form-input" id="modal-memo" placeholder="例：過去問10問解いた">
+    </div>
+    <div class="modal-actions">
+      <button class="btn primary" onclick="saveLog()">保存</button>
+      <button class="btn" onclick="closeDay()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- 資格追加モーダル -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-title">資格を追加</div>
+    <div class="form-row">
+      <div class="form-label">資格名</div>
+      <input type="text" class="form-input" id="add-name" placeholder="例：応用情報技術者">
+    </div>
+    <div class="form-row">
+      <div class="form-label">試験日</div>
+      <input type="date" class="form-input" id="add-date">
+    </div>
+    <div class="form-row">
+      <div class="form-label">目標学習時間（時間）</div>
+      <input type="number" class="form-input" id="add-hours" placeholder="例：200" min="0">
+    </div>
+    <div class="form-row">
+      <div class="form-label">ステータス</div>
+      <select class="form-input" id="add-status">
+        <option value="未着手">未着手</option>
+        <option value="勉強中">勉強中</option>
+        <option value="合格">合格</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-label">メモ・情報</div>
+      <input type="text" class="form-input" id="add-memo" placeholder="例：過去問道場 https://ap.siken.com">
+    </div>
+    <div class="modal-actions">
+      <button class="btn primary" onclick="saveShikaku()">追加</button>
+      <button class="btn" onclick="closeAdd()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TABS = ['home','shikaku','calendar','log','graph','timer','collection'];
+
+function load(key, def) {
+  try { return JSON.parse(localStorage.getItem(key)) ?? def; } catch { return def; }
+}
+function save(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+}
+
+let S = {
+  shikaku: load('shikaku', [
+    {id:1, name:'応用情報技術者', examDate:'2026-11-15', targetHours:200, status:'未着手', memo:'過去問道場: https://ap.siken.com'},
+    {id:2, name:'AWSクラウドプラクティショナー', examDate:'2027-02-20', targetHours:80, status:'未着手', memo:'AWS公式無料教材あり'},
+    {id:3, name:'基本情報技術者', examDate:'', targetHours:0, status:'合格', memo:'取得済み！'}
+  ]),
+  logs: load('logs', []),
+  calY: new Date().getFullYear(),
+  calM: new Date().getMonth(),
+  selDate: null,
+  graphMode: 'week'
+};
+
+function persist() {
+  save('shikaku', S.shikaku);
+  save('logs', S.logs);
+}
+
+function daysLeft(d) { return Math.ceil((new Date(d) - new Date()) / 864e5); }
+function studiedMin(id) { return S.logs.filter(l => l.sid === id).reduce((a, l) => a + l.min, 0); }
+function fmtH(min) { return (Math.round(min / 6) / 10).toFixed(1) + 'h'; }
+
+function sw(tab) {
+  document.querySelectorAll('.nav-btn').forEach((b, i) => b.classList.toggle('active', TABS[i] === tab));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + tab).classList.add('active');
+  if (tab === 'home') renderHome();
+  if (tab === 'shikaku') renderShikaku();
+  if (tab === 'calendar') renderCal();
+  if (tab === 'log') renderLog();
+  if (tab === 'graph') renderGraph();
+  if (tab === 'timer') renderTimerSel();
+  if (tab === 'collection') renderCollection();
+}
+
+function renderHome() {
+  const now = new Date();
+  const mLogs = S.logs.filter(l => { const d = new Date(l.date); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); });
+  document.getElementById('h-month').textContent = fmtH(mLogs.reduce((a, l) => a + l.min, 0));
+  document.getElementById('h-total').textContent = fmtH(S.logs.reduce((a, l) => a + l.min, 0));
+  document.getElementById('h-count').textContent = S.logs.length;
+  const dates = [...new Set(S.logs.map(l => l.date))].sort();
+  let streak = 0, chk = new Date(); chk.setHours(0,0,0,0);
+  for (let i = 0; i < 60; i++) { const ds = chk.toISOString().slice(0,10); if (dates.includes(ds)) streak++; else if (i > 0) break; chk.setDate(chk.getDate()-1); }
+  document.getElementById('h-streak').textContent = streak + '日';
+
+  const active = S.shikaku.filter(s => s.examDate && s.status !== '合格');
+  document.getElementById('h-countdown').innerHTML = active.length ? active.map(s => {
+    const dl = daysLeft(s.examDate);
+    const studied = studiedMin(s.id);
+    const pct = s.targetHours > 0 ? Math.min(100, Math.round(studied / s.targetHours / 60 * 100)) : 0;
+    const needed = Math.max(0, s.targetHours * 60 - studied);
+    const perDay = dl > 0 && needed > 0 ? Math.round(needed / dl) : 0;
+    const color = dl < 30 ? 'var(--amber)' : dl < 90 ? 'var(--blue)' : 'var(--text)';
+    return `<div class="countdown-item">
+      <div class="countdown-row">
+        <div class="countdown-name">${s.name}</div>
+        <div class="countdown-days" style="color:${color};">${dl > 0 ? dl + '日' : '終了'}</div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;"></div></div>
+      <div class="countdown-footer">
+        <span>${fmtH(studied)} / ${s.targetHours}h (${pct}%)</span>
+        ${perDay > 0 ? `<span>目安 ${perDay}分/日</span>` : ''}
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty-msg">試験予定の資格を追加してください</div>';
+
+  const recent = [...S.logs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+  document.getElementById('h-recent').innerHTML = recent.length ? recent.map(l => {
+    const s = S.shikaku.find(x => x.id === l.sid);
+    return `<div class="log-item">
+      <div><div class="log-name">${s ? s.name : '不明'}</div><div class="log-sub">${l.date}${l.memo ? '・' + l.memo : ''}</div></div>
+      <div class="log-min">${l.min}分</div>
+    </div>`;
+  }).join('') : '<div class="empty-msg">まだ記録がありません</div>';
+}
+
+function renderShikaku() {
+  document.getElementById('shikaku-list').innerHTML = S.shikaku.map(s => {
+    const dl = s.examDate ? daysLeft(s.examDate) : null;
+    const studied = studiedMin(s.id);
+    const pct = s.targetHours > 0 ? Math.min(100, Math.round(studied / s.targetHours / 60 * 100)) : 0;
+    const bc = s.status === '合格' ? 'badge-green' : s.status === '勉強中' ? 'badge-blue' : 'badge-amber';
+    return `<div class="shikaku-card">
+      <div class="shikaku-header">
+        <div><div class="shikaku-name">${s.name}</div>${s.examDate ? `<div class="shikaku-date">試験日: ${s.examDate}</div>` : ''}</div>
+        <span class="badge ${bc}">${s.status}</span>
+      </div>
+      ${dl !== null ? `<div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px;"><span style="color:var(--text-2);">残り日数</span><span style="font-weight:700;">${dl > 0 ? dl + '日' : '終了'}</span></div>` : ''}
+      <div class="progress-bar progress-wrap"><div class="progress-fill" style="width:${pct}%;"></div></div>
+      <div class="shikaku-meta"><span>${fmtH(studied)} / ${s.targetHours}h</span><span>${pct}%</span></div>
+      ${s.memo ? `<div class="memo-box">${s.memo}</div>` : ''}
+      <button class="del-btn" onclick="delS(${s.id})">🗑 削除</button>
+    </div>`;
+  }).join('') || '<div class="empty-msg">資格が登録されていません</div>';
+}
+
+function delS(id) { if (confirm('削除しますか？')) { S.shikaku = S.shikaku.filter(s => s.id !== id); persist(); renderShikaku(); } }
+
+function renderCal() {
+  const y = S.calY, m = S.calM;
+  const mn = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  document.getElementById('cal-title').textContent = y + '年 ' + mn[m];
+  const dn = ['日','月','火','水','木','金','土'];
+  const today = new Date(); today.setHours(0,0,0,0);
+  const first = new Date(y, m, 1).getDay();
+  const dim = new Date(y, m+1, 0).getDate();
+  const sDates = new Set(S.logs.map(l => l.date));
+  const eDates = new Set(S.shikaku.filter(s => s.examDate).map(s => s.examDate));
+  let html = dn.map(d => `<div class="cal-day-name">${d}</div>`).join('');
+  for (let i = 0; i < first; i++) html += `<div class="cal-day empty"></div>`;
+  for (let d = 1; d <= dim; d++) {
+    const ds = y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const isT = new Date(y,m,d).getTime() === today.getTime();
+    let cls = 'cal-day';
+    if (eDates.has(ds)) cls += ' exam-day';
+    else if (sDates.has(ds)) cls += ' has-study';
+    if (isT) cls += ' today';
+    html += `<div class="${cls}" onclick="openDay('${ds}')">${d}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+}
+
+function prevM() { S.calM--; if (S.calM < 0) { S.calM = 11; S.calY--; } renderCal(); }
+function nextM() { S.calM++; if (S.calM > 11) { S.calM = 0; S.calY++; } renderCal(); }
+
+function openDay(date) {
+  S.selDate = date;
+  document.getElementById('modal-date-title').textContent = date + ' の記録';
+  document.getElementById('modal-shikaku').innerHTML = S.shikaku.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  document.getElementById('modal-min').value = 60;
+  document.getElementById('modal-memo').value = '';
+  document.getElementById('day-modal').classList.add('open');
+}
+function closeDay() { document.getElementById('day-modal').classList.remove('open'); }
+function saveLog() {
+  const sid = parseInt(document.getElementById('modal-shikaku').value);
+  const min = parseInt(document.getElementById('modal-min').value) || 0;
+  const memo = document.getElementById('modal-memo').value;
+  S.logs.push({ id: Date.now(), date: S.selDate, sid, min, memo });
+  persist(); closeDay(); renderCal(); renderHome();
+}
+
+function renderLog() {
+  const sorted = [...S.logs].sort((a, b) => b.date.localeCompare(a.date));
+  document.getElementById('log-list').innerHTML = sorted.length ? `<div class="card">${sorted.map(l => {
+    const s = S.shikaku.find(x => x.id === l.sid);
+    return `<div class="log-item">
+      <div><div class="log-name">${s ? s.name : '不明'}</div><div class="log-sub">${l.date}${l.memo ? '・' + l.memo : ''}</div></div>
+      <div class="log-min">${l.min}分</div>
+    </div>`;
+  }).join('')}</div>` : '<div class="empty-msg">まだ記録がありません</div>';
+}
+
+let chartInst = null;
+function setGraph(mode) {
+  S.graphMode = mode;
+  ['week','month'].forEach(m => document.getElementById('g-'+m).classList.toggle('active', m === mode));
+  renderGraph();
+}
+
+function renderGraph() {
+  const now = new Date();
+  let labels = [], data = [];
+  if (S.graphMode === 'week') {
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now); d.setDate(d.getDate() - i);
+      const ds = d.toISOString().slice(0,10);
+      labels.push(['日','月','火','水','木','金','土'][d.getDay()]);
+      data.push(Math.round(S.logs.filter(l => l.date === ds).reduce((a, l) => a + l.min, 0) / 6) / 10);
+    }
+  } else {
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const mL = S.logs.filter(l => { const ld = new Date(l.date); return ld.getFullYear() === d.getFullYear() && ld.getMonth() === d.getMonth(); });
+      labels.push((d.getMonth()+1) + '月');
+      data.push(Math.round(mL.reduce((a, l) => a + l.min, 0) / 6) / 10);
+    }
+  }
+  if (chartInst) { chartInst.destroy(); chartInst = null; }
+  chartInst = new Chart(document.getElementById('studyChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: '学習時間(h)', data, backgroundColor: '#bfdbfe', borderColor: '#2563eb', borderWidth: 1.5, borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: v => v + 'h', font: { size: 11 } } }, x: { ticks: { font: { size: 12 } } } } }
+  });
+}
+
+let timerSec = 25*60, timerRunning = false, timerMode = 'focus', pomodoroCount = 0, timerInterval = null;
+function fmtTimer(s) { return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); }
+
+function renderTimerSel() {
+  document.getElementById('timer-shikaku').innerHTML = S.shikaku.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+function setMode(mode) {
+  timerMode = mode;
+  resetTimer();
+  document.getElementById('t-focus').classList.toggle('active', mode === 'focus');
+  document.getElementById('t-break').classList.toggle('active', mode === 'break');
+  document.getElementById('timer-sub').textContent = mode === 'focus' ? '集中モード' : '休憩モード';
+  document.getElementById('timer-circle').style.borderColor = mode === 'focus' ? 'var(--blue)' : 'var(--green)';
+}
+
+function startTimer() {
+  if (timerRunning) {
+    clearInterval(timerInterval); timerRunning = false;
+    document.getElementById('t-start').textContent = '▶ スタート';
+  } else {
+    timerRunning = true;
+    document.getElementById('t-start').textContent = '⏸ 一時停止';
+    timerInterval = setInterval(() => {
+      timerSec--;
+      document.getElementById('timer-display').textContent = fmtTimer(timerSec);
+      if (timerSec <= 0) {
+        clearInterval(timerInterval); timerRunning = false;
+        if (timerMode === 'focus') {
+          pomodoroCount++;
+          document.getElementById('pomo-n').textContent = pomodoroCount;
+          document.getElementById('pomo-min').textContent = pomodoroCount * 25;
+          const sid = parseInt(document.getElementById('timer-shikaku').value);
+          const today = new Date().toISOString().slice(0,10);
+          S.logs.push({ id: Date.now(), date: today, sid, min: 25, memo: 'ポモドーロ' });
+          persist();
+        }
+        document.getElementById('t-start').textContent = '▶ スタート';
+        setMode(timerMode === 'focus' ? 'break' : 'focus');
+        if (Notification.permission === 'granted') new Notification(timerMode === 'focus' ? '集中タイム終了！休憩しよう' : '休憩終了！次の集中へ');
+      }
+    }, 1000);
+  }
+}
+
+function resetTimer() {
+  clearInterval(timerInterval); timerRunning = false;
+  timerSec = timerMode === 'focus' ? 25*60 : 5*60;
+  document.getElementById('timer-display').textContent = fmtTimer(timerSec);
+  document.getElementById('t-start').textContent = '▶ スタート';
+}
+
+function renderCollection() {
+  const passed = S.shikaku.filter(s => s.status === '合格');
+  const icons = ['🏆','⭐','🥇','📜','🎖','✅'];
+  if (passed.length === 0) {
+    document.getElementById('trophy-grid').innerHTML = '';
+    document.getElementById('no-trophy').innerHTML = '<div class="empty-msg">合格済みの資格がありません。<br>頑張れ！</div>';
+  } else {
+    document.getElementById('no-trophy').innerHTML = '';
+    document.getElementById('trophy-grid').innerHTML = passed.map((s, i) => `
+      <div class="trophy-card">
+        <div class="trophy-icon">${icons[i % icons.length]}</div>
+        <div class="trophy-name">${s.name}</div>
+        ${s.memo ? `<div class="trophy-memo">${s.memo}</div>` : ''}
+      </div>`).join('');
+  }
+}
+
+function openAdd() {
+  ['add-name','add-date','add-hours','add-memo'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('add-status').value = '未着手';
+  document.getElementById('add-modal').classList.add('open');
+}
+function closeAdd() { document.getElementById('add-modal').classList.remove('open'); }
+function saveShikaku() {
+  const name = document.getElementById('add-name').value.trim();
+  if (!name) { alert('資格名を入力してください'); return; }
+  S.shikaku.push({ id: Date.now(), name, examDate: document.getElementById('add-date').value, targetHours: parseInt(document.getElementById('add-hours').value) || 0, status: document.getElementById('add-status').value, memo: document.getElementById('add-memo').value });
+  persist(); closeAdd(); renderShikaku();
+}
+
+document.querySelectorAll('.modal-overlay').forEach(el => el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); }));
+
+if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+
+renderCal();
+</script>
+</body>
+</html>
